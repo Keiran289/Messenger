@@ -9,8 +9,8 @@ from collections import defaultdict
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
+# УПРОЩЕННАЯ конфигурация Socket.IO - удалите async_mode
 socketio = SocketIO(app,
-                    async_mode='eventlet',
                     cors_allowed_origins="*",
                     ping_timeout=30,
                     ping_interval=15,
@@ -356,5 +356,6 @@ def handle_get_user_status(data):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"Starting NavyChat server on port {port}...")
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+    host = '0.0.0.0'  # Важно для Render
+    print(f"Starting NavyChat server on {host}:{port}...")
+    socketio.run(app, host=host, port=port, debug=False)
