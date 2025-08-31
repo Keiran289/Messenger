@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NavyChat - Мессенджер</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        :root {
+            --navy-dark: #0a192f;
+            --navy-medium: #112240;
+            --navy-light: #233554;
+            --navy-lighter: #303C55;
+            --accent: #64ffda;
+            --accent-hover: #52dbbf;
+            --text-primary: #e6f1ff;
+            --text-secondary: #a8b2d1;
+            --text-muted: #8892b0;
+            --success: #64ffda;
+            --error: #ff6b6b;
+            --online: #64ffda;
+            --offline: #495670;
+            --contact-bg: rgba(100, 255, 218, 0.1);
+            --border-radius: 16px;
+            --shadow: 0 10px 30px rgba(2, 12, 27, 0.7);
+            --transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+            --header-height: 60px;
+            --input-height: 70px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'SF Mono', 'Fira Code', monospace;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--navy-dark) 0%, #020c1b 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        /* Mobile First */
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Login Screen */
+        .login-container {
+            background: rgba(10, 25, 47, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 255, 218, 0.1);
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+            margin: auto;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--navy-light), var(--accent));
+            border-radius: 20px;
+            margin: 0 auto 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--navy-dark);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.3);
+        }
+
+        .login-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 35px;
+            font-size: 16px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 18px 20px;
+            background: rgba(35, 53, 84, 0.6);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .login-input:focus {
+            border-color: var(--accent);
+            background: rgba(35, 53, 84, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border: none;
+            border-radius: 12px;
+            color: var(--navy-dark);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 15px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .login-error {
+            color: var(--error);
+            margin-top: 20px;
+            min-height: 24px;
+            font-size: 14px;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            background: var(--navy-dark);
+            flex-direction: column;
+        }
+
+        /* Header */
+        .chat-header {
+            height: var(--header-height);
+            padding: 0 20px;
+            background: rgba(17, 34, 64, 0.95);
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .back-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .friend-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--navy-light), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--navy-dark);
+            flex-shrink: 0;
+        }
+
+        .friend-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .friend-info h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .friend-info p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--online);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .online-count {
+            background: rgba(100, 255, 218, 0.1);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--accent);
+            display: none;
+        }
+
+        /* Main Content */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            height: calc(100vh - var(--header-height) - var(--input-height));
+            position: relative;
+        }
+
+        /* Sidebar */
+        .contacts-sidebar {
+            width: 100%;
+            background: rgba(17, 34, 64, 0.95);
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: -100%;
+            height: 100%;
+            z-index: 200;
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .contacts-sidebar.active {
+            transform: translateX(100%);
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+        }
+
+        .contacts-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .add-contact-form {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+        }
+
+        .contact-input {
+            flex: 1;
+            padding: 15px;
+            background: rgba(35, 53, 84, 0.6);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .contact-input:focus {
+            border-color: var(--accent);
+        }
+
+        .add-contact-btn {
+            padding: 15px 20px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: var(--navy-dark);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .contacts-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .contact-item:hover {
+            background: rgba(35, 53, 84, 0.4);
+        }
+
+        .contact-item:hover .delete-contact-btn {
+            opacity: 1;
+        }
+
+        .contact-item.active {
+            background: var(--contact-bg);
+            border-left: 4px solid var(--accent);
+        }
+
+        .contact-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--navy-light), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--navy-dark);
+            flex-shrink: 0;
+        }
+
+        .contact-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-tag {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--navy-medium);
+            flex-shrink: 0;
+        }
+
+        .status-online {
+            background: var(--online);
+            box-shadow: 0 0 8px var(--online);
+        }
+
+        .status-offline {
+            background: var(--offline);
+        }
+
+        .delete-contact-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 107, 107, 0.2);
+            border: none;
+            border-radius: 6px;
+            color: var(--error);
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            opacity: 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .delete-contact-btn:hover {
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        /* Messages Area */
+        .messages-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(10, 25, 47, 0.3);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 15px 18px;
+            border-radius: 18px;
+            position: relative;
+            animation: messageSlide 0.3s ease-out;
+            border: 1px solid transparent;
+            word-wrap: break-word;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-incoming {
+            align-self: flex-start;
+            background: rgba(35, 53, 84, 0.5);
+            border-bottom-left-radius: 6px;
+            border-color: rgba(100, 255, 218, 0.1);
+        }
+
+        .message-outgoing {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border-bottom-right-radius: 6px;
+            color: var(--navy-dark);
+        }
+
+        .message-sender {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        .message-outgoing .message-sender {
+            color: var(--navy-dark);
+        }
+
+        .message-text {
+            line-height: 1.5;
+            font-size: 15px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 8px;
+        }
+
+        .message-outgoing .message-time {
+            color: rgba(10, 25, 47, 0.8);
+        }
+
+        /* Input Area */
+        .message-input-container {
+            height: var(--input-height);
+            padding: 15px 20px;
+            background: rgba(17, 34, 64, 0.95);
+            border-top: 1px solid rgba(100, 255, 218, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .message-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            height: 100%;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 16px 18px;
+            background: rgba(35, 53, 84, 0.6);
+            border: 2px solid transparent;
+            border-radius: 25px;
+            color: var(--text-primary);
+            font-size: 15px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            outline: none;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            border-color: var(--accent);
+            background: rgba(35, 53, 84, 0.8);
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border: none;
+            border-radius: 50%;
+            color: var(--navy-dark);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* System Messages */
+        .system-message {
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+            margin: 15px 0;
+            font-size: 14px;
+            padding: 12px;
+            background: rgba(35, 53, 84, 0.3);
+            border-radius: 10px;
+        }
+
+        /* Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 150;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(100, 255, 218, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(17, 34, 64, 0.3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+            }
+
+            .app-container {
+                width: 100%;
+                max-width: 1200px;
+                height: 700px;
+                border-radius: var(--border-radius);
+                overflow: hidden;
+                box-shadow: var(--shadow);
+                border: 1px solid rgba(100, 255, 218, 0.1);
+            }
+
+            .login-container {
+                height: 700px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .chat-container {
+                height: 700px;
+            }
+
+            .contacts-sidebar {
+                width: 320px;
+                left: 0;
+                transform: none;
+                position: relative;
+                border-right: 1px solid rgba(100, 255, 218, 0.1);
+            }
+
+            .contacts-sidebar.active {
+                transform: none;
+            }
+
+            .sidebar-overlay {
+                display: none !important;
+            }
+
+            .back-btn {
+                display: none !important;
+            }
+
+            .menu-btn {
+                display: none;
+            }
+
+            .online-count {
+                display: block;
+            }
+
+            .message {
+                max-width: 65%;
+            }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 767px) {
+            .login-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .app-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+
+            .login-title {
+                font-size: 28px;
+            }
+
+            .chat-header {
+                padding: 0 16px;
+            }
+
+            .back-btn {
+                display: flex;
+            }
+
+            .friend-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .friend-info h3 {
+                font-size: 16px;
+            }
+
+            .messages-container {
+                padding: 16px;
+            }
+
+            .message {
+                max-width: 85%;
+                padding: 14px 16px;
+            }
+
+            .message-input-container {
+                padding: 12px 16px;
+            }
+
+            .message-input {
+                padding: 14px 16px;
+                font-size: 16px;
+            }
+
+            .delete-contact-btn {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div class="login-container" id="login-container">
+            <div class="app-icon">NC</div>
+            <h1 class="login-title">NavyChat</h1>
+            <p class="login-subtitle">Общайтесь в общем и личных чатах</p>
+            <input type="text" class="login-input" id="username-input" placeholder="Введите ваше имя" maxlength="20" autocomplete="off">
+            <button class="login-btn" id="login-btn">
+                <span id="login-btn-text">→ Войти в чат</span>
+                <span class="loading" id="login-loading" style="display: none;"></span>
+            </button>
+            <div class="login-error" id="error-message"></div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="chat-container" id="chat-container">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="header-left">
+                    <button class="back-btn" id="back-btn">←</button>
+                    <div class="friend-avatar" id="current-chat-avatar">👥</div>
+                    <div class="friend-info">
+                        <h3 id="current-chat-name">Общий чат</h3>
+                        <p>
+                            <span class="status-dot" id="current-chat-status"></span>
+                            <span id="current-chat-status-text">онлайн</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <span class="online-count" id="online-count">0 онлайн</span>
+                    <button class="menu-btn" id="menu-btn">☰</button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="chat-main">
+                <!-- Sidebar Overlay -->
+                <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+                <!-- Contacts Sidebar -->
+                <div class="contacts-sidebar" id="contacts-sidebar">
+                    <div class="sidebar-header">
+                        <h2 class="contacts-title">
+                            <span>👥</span>
+                            Контакты
+                        </h2>
+                    </div>
+
+                    <div class="add-contact-form">
+                        <input type="text" class="contact-input" id="contact-username-input"
+                               placeholder="Логин пользователя" maxlength="20" autocomplete="off">
+                        <button class="add-contact-btn" id="add-contact-btn">+</button>
+                    </div>
+
+                    <div class="contacts-list" id="contacts-list">
+                        <div class="contact-item active" data-chat-id="general" data-chat-type="general">
+                            <div class="contact-avatar">👥</div>
+                            <div class="contact-info">
+                                <div class="contact-name">Общий чат</div>
+                                <div class="contact-tag">Все пользователи</div>
+                            </div>
+                            <div class="contact-status status-online"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="messages-area">
+                    <div class="messages-container" id="messages-container">
+                        <div class="system-message">Добро пожаловать в NavyChat! 🚀</div>
+                    </div>
+
+                    <div class="message-input-container">
+                        <div class="message-form">
+                            <textarea class="message-input" id="message-input"
+                                     placeholder="Напишите сообщение..." maxlength="500"
+                                     disabled></textarea>
+                            <button class="send-btn" id="send-btn" disabled>→</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NavyChat {
+            constructor() {
+                this.socket = io();
+                this.currentUsername = '';
+                this.currentUserId = '';
+                this.currentChatId = 'general';
+                this.currentChatType = 'general';
+                this.contacts = JSON.parse(localStorage.getItem('navychat_contacts') || '[]');
+                this.chatMessages = JSON.parse(localStorage.getItem('navychat_messages') || '{}');
+                this.onlineUsers = new Set();
+                this.isSidebarOpen = false;
+                this.isMobile = window.innerWidth < 768;
+
+                this.initializeElements();
+                this.bindEvents();
+                this.setupSocketListeners();
+                this.setupUI();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    loginContainer: document.getElementById('login-container'),
+                    chatContainer: document.getElementById('chat-container'),
+                    usernameInput: document.getElementById('username-input'),
+                    loginBtn: document.getElementById('login-btn'),
+                    loginBtnText: document.getElementById('login-btn-text'),
+                    loginLoading: document.getElementById('login-loading'),
+                    errorMessage: document.getElementById('error-message'),
+                    messageInput: document.getElementById('message-input'),
+                    sendBtn: document.getElementById('send-btn'),
+                    messagesContainer: document.getElementById('messages-container'),
+                    contactUsernameInput: document.getElementById('contact-username-input'),
+                    addContactBtn: document.getElementById('add-contact-btn'),
+                    contactsList: document.getElementById('contacts-list'),
+                    currentChatAvatar: document.getElementById('current-chat-avatar'),
+                    currentChatName: document.getElementById('current-chat-name'),
+                    currentChatStatus: document.getElementById('current-chat-status'),
+                    currentChatStatusText: document.getElementById('current-chat-status-text'),
+                    onlineCount: document.getElementById('online-count'),
+                    backBtn: document.getElementById('back-btn'),
+                    menuBtn: document.getElementById('menu-btn'),
+                    sidebar: document.getElementById('contacts-sidebar'),
+                    overlay: document.getElementById('sidebar-overlay')
+                };
+            }
+
+            setupUI() {
+                if (this.isMobile) {
+                    this.elements.backBtn.style.display = 'flex';
+                }
+            }
+
+            bindEvents() {
+                // Login events
+                this.elements.loginBtn.addEventListener('click', () => this.handleLogin());
+                this.elements.usernameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleLogin();
+                });
+
+                // Message events
+                this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.elements.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                // Contact events
+                this.elements.addContactBtn.addEventListener('click', () => this.addContact());
+                this.elements.contactUsernameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.addContact();
+                });
+
+                // UI events
+                this.elements.messageInput.addEventListener('input', () => this.autoResizeTextarea());
+                this.elements.menuBtn.addEventListener('click', () => this.toggleSidebar());
+                this.elements.backBtn.addEventListener('click', () => this.toggleSidebar());
+                this.elements.overlay.addEventListener('click', () => this.toggleSidebar(false));
+
+                // Window resize
+                window.addEventListener('resize', () => this.handleResize());
+            }
+
+            setupSocketListeners() {
+                this.socket.on('connect', () => {
+                    console.log('Connected to server');
+                });
+
+                this.socket.on('login_success', (data) => this.handleLoginSuccess(data));
+                this.socket.on('login_failed', (data) => this.handleLoginFailed(data));
+                this.socket.on('new_message', (data) => this.handleNewMessage(data));
+                this.socket.on('user_joined', (data) => this.handleUserJoined(data));
+                this.socket.on('user_left', (data) => this.handleUserLeft(data));
+                this.socket.on('online_users', (data) => this.handleOnlineUsers(data));
+                this.socket.on('chat_history', (data) => this.handleChatHistory(data));
+                this.socket.on('contact_added', (data) => this.handleContactAdded(data));
+                this.socket.on('contact_removed', (data) => this.handleContactRemoved(data));
+                this.socket.on('contact_error', (data) => this.showError(data.reason));
+                this.socket.on('user_contacts', (data) => this.handleUserContacts(data));
+            }
+
+            handleResize() {
+                this.isMobile = window.innerWidth < 768;
+                this.elements.backBtn.style.display = this.isMobile ? 'flex' : 'none';
+            }
+
+            handleLogin() {
+                const username = this.elements.usernameInput.value.trim();
+                if (!username) {
+                    this.showError('Пожалуйста, введите имя');
+                    return;
+                }
+
+                this.showLoading(true);
+                this.socket.emit('set_username', { username });
+            }
+
+            handleLoginSuccess(data) {
+                this.currentUsername = data.username;
+                this.currentUserId = data.user_id;
+                this.showLoading(false);
+                this.showChat();
+                this.loadContacts();
+                this.updateOnlineCount(data.online_count);
+
+                // Загружаем контакты пользователя
+                this.socket.emit('get_user_contacts');
+
+                // Загружаем историю общего чата
+                if (data.recent_messages && data.recent_messages.length > 0) {
+                    data.recent_messages.forEach(msg => {
+                        this.addMessageToChat('general', msg);
+                    });
+                    this.renderMessages('general');
+                }
+            }
+
+            handleUserContacts(data) {
+                // Загружаем контакты с сервера
+                this.contacts = data.contacts.map(contact => ({
+                    id: contact,
+                    username: contact,
+                    name: contact,
+                    online: this.onlineUsers.has(contact)
+                }));
+                this.saveContacts();
+                this.renderContacts();
+            }
+
+            handleLoginFailed(data) {
+                this.showLoading(false);
+                this.showError(data.reason || 'Ошибка входа');
+            }
+
+            showChat() {
+                this.elements.loginContainer.style.display = 'none';
+                this.elements.chatContainer.style.display = 'flex';
+                this.elements.messageInput.disabled = false;
+                this.elements.sendBtn.disabled = false;
+                this.elements.messageInput.focus();
+            }
+
+            sendMessage() {
+                const text = this.elements.messageInput.value.trim();
+                if (!text) return;
+
+                const messageData = {
+                    text: text,
+                    chat_id: this.currentChatId,
+                    recipient: this.currentChatType === 'private' ? this.currentChatId : null
+                };
+
+                // Создаем временное сообщение для мгновенного отображения
+                const tempMessage = {
+                    id: 'temp_' + Date.now(),
+                    sender: this.currentUsername,
+                    text: text,
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    chat_id: this.currentChatId
+                };
+
+                this.addMessageToChat(this.currentChatId, tempMessage);
+                this.renderMessages(this.currentChatId);
+
+                // Отправляем на сервер
+                this.socket.emit('send_message', messageData);
+
+                // Очищаем поле ввода
+                this.elements.messageInput.value = '';
+                this.elements.messageInput.style.height = 'auto';
+            }
+
+            addContact() {
+                const contactUsername = this.elements.contactUsernameInput.value.trim();
+                if (!contactUsername) {
+                    this.showError('Введите логин пользователя');
+                    return;
+                }
+
+                if (contactUsername === this.currentUsername) {
+                    this.showError('Нельзя добавить самого себя');
+                    return;
+                }
+
+                // Отправляем запрос на сервер
+                this.socket.emit('add_contact', {
+                    contact_username: contactUsername
+                });
+
+                this.elements.contactUsernameInput.value = '';
+            }
+
+            removeContact(contactUsername) {
+                if (confirm(`Удалить контакт ${contactUsername}?`)) {
+                    this.socket.emit('remove_contact', {
+                        contact_username: contactUsername
+                    });
+                }
+            }
+
+            handleContactAdded(data) {
+                const newContact = {
+                    id: data.contact_username,
+                    username: data.contact_username,
+                    name: data.contact_username,
+                    online: this.onlineUsers.has(data.contact_username)
+                };
+
+                // Проверяем, нет ли уже такого контакта
+                if (!this.contacts.find(c => c.id === newContact.id)) {
+                    this.contacts.push(newContact);
+                    this.saveContacts();
+                    this.renderContacts();
+                }
+
+                // Присоединяемся к чату
+                this.socket.emit('join_private_chat', {
+                    contact_username: data.contact_username
+                });
+
+                this.showError('Контакт добавлен!');
+            }
+
+            handleContactRemoved(data) {
+                const contactIndex = this.contacts.findIndex(c => c.id === data.contact_username);
+                if (contactIndex !== -1) {
+                    this.contacts.splice(contactIndex, 1);
+                    this.saveContacts();
+                    this.renderContacts();
+
+                    // Если удаленный контакт был активным чатом, переключаемся на общий
+                    if (this.currentChatId === data.contact_username) {
+                        this.switchChat('general', 'general');
+                    }
+                }
+
+                this.showError('Контакт удален');
+            }
+
+            toggleSidebar(force) {
+                this.isSidebarOpen = force !== undefined ? force : !this.isSidebarOpen;
+                this.elements.sidebar.classList.toggle('active', this.isSidebarOpen);
+                this.elements.overlay.style.display = this.isSidebarOpen ? 'block' : 'none';
+
+                if (this.isMobile) {
+                    document.body.style.overflow = this.isSidebarOpen ? 'hidden' : '';
+                }
+            }
+
+            switchChat(chatId, chatType) {
+                this.currentChatId = chatId;
+                this.currentChatType = chatType;
+
+                this.updateChatHeader();
+                this.renderContacts();
+
+                // Загружаем сообщения для этого чата
+                if (this.chatMessages[chatId]) {
+                    this.renderMessages(chatId);
+                } else {
+                    this.socket.emit('get_chat_history', { chat_id: chatId });
+                }
+
+                if (this.isMobile) {
+                    this.toggleSidebar(false);
+                }
+            }
+
+            updateChatHeader() {
+                if (this.currentChatId === 'general') {
+                    this.elements.currentChatAvatar.textContent = '👥';
+                    this.elements.currentChatName.textContent = 'Общий чат';
+                    this.elements.currentChatStatus.className = 'status-dot';
+                    this.elements.currentChatStatusText.textContent = 'онлайн';
+                } else {
+                    const contact = this.contacts.find(c => c.id === this.currentChatId);
+                    if (contact) {
+                        this.elements.currentChatAvatar.textContent = contact.name.charAt(0).toUpperCase();
+                        this.elements.currentChatName.textContent = contact.name;
+                        this.elements.currentChatStatus.className = `contact-status ${contact.online ? 'status-online' : 'status-offline'}`;
+                        this.elements.currentChatStatusText.textContent = contact.online ? 'онлайн' : 'оффлайн';
+                    }
+                }
+            }
+
+            handleNewMessage(data) {
+                // Добавляем сообщение только в соответствующий чат
+                this.addMessageToChat(data.chat_id, data.message);
+
+                // Показываем сообщение только если это текущий чат
+                if (data.chat_id === this.currentChatId) {
+                    this.renderMessages(data.chat_id);
+                }
+            }
+
+            handleUserJoined(data) {
+                this.onlineUsers.add(data.username);
+                this.updateContactStatus(data.username, true);
+
+                // Системное сообщение только в общем чате
+                if (this.currentChatId === 'general') {
+                    this.addSystemMessage('general', `${data.username} присоединился к чату`);
+                }
+            }
+
+            handleUserLeft(data) {
+                this.onlineUsers.delete(data.username);
+                this.updateContactStatus(data.username, false);
+
+                if (this.currentChatId === 'general') {
+                    this.addSystemMessage('general', `${data.username} покинул чат`);
+                }
+            }
+
+            handleOnlineUsers(data) {
+                this.onlineUsers = new Set(data.users);
+                this.updateOnlineCount(data.count);
+
+                // Обновляем статусы контактов
+                this.contacts.forEach(contact => {
+                    contact.online = this.onlineUsers.has(contact.username);
+                });
+                this.renderContacts();
+            }
+
+            handleChatHistory(data) {
+                // Сохраняем историю для конкретного чата
+                this.chatMessages[data.chat_id] = data.messages;
+
+                // Показываем только если это текущий чат
+                if (data.chat_id === this.currentChatId) {
+                    this.renderMessages(data.chat_id);
+                }
+            }
+
+            addMessageToChat(chatId, messageData) {
+                if (!this.chatMessages[chatId]) {
+                    this.chatMessages[chatId] = [];
+                }
+
+                // Проверяем, нет ли уже такого сообщения
+                if (!this.chatMessages[chatId].find(msg => msg.id === messageData.id)) {
+                    this.chatMessages[chatId].push(messageData);
+                    this.saveMessages();
+                }
+            }
+
+            addSystemMessage(chatId, text) {
+                const messageData = {
+                    id: 'system_' + Date.now(),
+                    sender: 'system',
+                    text: text,
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    type: 'system'
+                };
+
+                this.addMessageToChat(chatId, messageData);
+                if (chatId === this.currentChatId) {
+                    this.renderMessages(chatId);
+                }
+            }
+
+            renderMessages(chatId) {
+                this.elements.messagesContainer.innerHTML = '';
+
+                if (!this.chatMessages[chatId] || this.chatMessages[chatId].length === 0) {
+                    if (chatId === 'general') {
+                        this.elements.messagesContainer.innerHTML = '<div class="system-message">Здесь пока нет сообщений. Начните общение!</div>';
+                    } else {
+                        const contact = this.contacts.find(c => c.id === chatId);
+                        this.elements.messagesContainer.innerHTML = `<div class="system-message">Чат с ${contact ? contact.name : 'пользователем'} пуст. Начните общение!</div>`;
+                    }
+                    return;
+                }
+
+                this.chatMessages[chatId].forEach(messageData => {
+                    const messageDiv = document.createElement('div');
+
+                    if (messageData.type === 'system') {
+                        messageDiv.className = 'system-message';
+                        messageDiv.textContent = messageData.text;
+                    } else {
+                        const isCurrentUser = messageData.sender === this.currentUsername;
+                        messageDiv.className = `message ${isCurrentUser ? 'message-outgoing' : 'message-incoming'}`;
+                        messageDiv.innerHTML = `
+                            ${!isCurrentUser ? `<div class="message-sender">${messageData.sender}</div>` : ''}
+                            <div class="message-text">${this.escapeHtml(messageData.text)}</div>
+                            <div class="message-time">${messageData.time}</div>
+                        `;
+                    }
+
+                    this.elements.messagesContainer.appendChild(messageDiv);
+                });
+
+                this.scrollToBottom();
+            }
+
+            updateContactStatus(username, isOnline) {
+                const contact = this.contacts.find(c => c.id === username);
+                if (contact) {
+                    contact.online = isOnline;
+                    this.saveContacts();
+                    this.renderContacts();
+
+                    if (this.currentChatId === username) {
+                        this.elements.currentChatStatus.className = `contact-status ${isOnline ? 'status-online' : 'status-offline'}`;
+                        this.elements.currentChatStatusText.textContent = isOnline ? 'онлайн' : 'оффлайн';
+                    }
+                }
+            }
+
+            updateOnlineCount(count) {
+                this.onlineCount = count || 0;
+                this.elements.onlineCount.textContent = `${this.onlineCount} онлайн`;
+            }
+
+            loadContacts() {
+                this.renderContacts();
+            }
+
+            renderContacts() {
+                this.elements.contactsList.innerHTML = '';
+
+                // Общий чат
+                const generalActive = this.currentChatId === 'general' ? 'active' : '';
+                this.elements.contactsList.innerHTML += `
+                    <div class="contact-item ${generalActive}" data-chat-id="general" data-chat-type="general">
+                        <div class="contact-avatar">👥</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Общий чат</div>
+                            <div class="contact-tag">${this.onlineCount} онлайн</div>
+                        </div>
+                        <div class="contact-status status-online"></div>
+                    </div>
+                `;
+
+                // Контакты пользователей
+                this.contacts.forEach(contact => {
+                    const active = this.currentChatId === contact.id ? 'active' : '';
+                    const status = contact.online ? 'status-online' : 'status-offline';
+                    const statusText = contact.online ? 'онлайн' : 'оффлайн';
+
+                    const contactElement = document.createElement('div');
+                    contactElement.className = `contact-item ${active}`;
+                    contactElement.setAttribute('data-chat-id', contact.id);
+                    contactElement.setAttribute('data-chat-type', 'private');
+                    contactElement.innerHTML = `
+                        <div class="contact-avatar">${contact.name.charAt(0).toUpperCase()}</div>
+                        <div class="contact-info">
+                            <div class="contact-name">${contact.name}</div>
+                            <div class="contact-tag">${statusText}</div>
+                        </div>
+                        <div class="contact-status ${status}"></div>
+                        <button class="delete-contact-btn" onclick="navyChat.removeContact('${contact.id}')">×</button>
+                    `;
+
+                    contactElement.addEventListener('click', (e) => {
+                        // Не переключаем чат при клике на кнопку удаления
+                        if (!e.target.classList.contains('delete-contact-btn')) {
+                            this.switchChat(contact.id, 'private');
+                        }
+                    });
+
+                    this.elements.contactsList.appendChild(contactElement);
+                });
+
+                // Обработчик для общего чата
+                const generalChat = this.elements.contactsList.querySelector('[data-chat-id="general"]');
+                if (generalChat) {
+                    generalChat.addEventListener('click', () => {
+                        this.switchChat('general', 'general');
+                    });
+                }
+            }
+
+            autoResizeTextarea() {
+                this.elements.messageInput.style.height = 'auto';
+                this.elements.messageInput.style.height = Math.min(this.elements.messageInput.scrollHeight, 120) + 'px';
+            }
+
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+                }, 100);
+            }
+
+            showError(message) {
+                this.elements.errorMessage.textContent = message;
+                setTimeout(() => {
+                    this.elements.errorMessage.textContent = '';
+                }, 3000);
+            }
+
+            showLoading(show) {
+                if (show) {
+                    this.elements.loginBtnText.style.display = 'none';
+                    this.elements.loginLoading.style.display = 'inline-block';
+                    this.elements.loginBtn.disabled = true;
+                } else {
+                    this.elements.loginBtnText.style.display = 'inline-block';
+                    this.elements.loginLoading.style.display = 'none';
+                    this.elements.loginBtn.disabled = false;
+                }
+            }
+
+            saveContacts() {
+                localStorage.setItem('navychat_contacts', JSON.stringify(this.contacts));
+            }
+
+            saveMessages() {
+                localStorage.setItem('navychat_messages', JSON.stringify(this.chatMessages));
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            window.navyChat = new NavyChat();
+            console.log('NavyChat initialized');
+        });
+    </script>
+</body>
+</html>

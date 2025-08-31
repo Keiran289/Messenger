@@ -1,0 +1,311 @@
+:root {
+  --primary: #4361ee;
+  --primary-light: #4895ef;
+  --secondary: #3f37c9;
+  --dark: #1b263b;
+  --light: #f8f9fa;
+  --success: #4cc9f0;
+  --danger: #f72585;
+  --warning: #f8961e;
+  --info: #43aa8b;
+  --gray: #adb5bd;
+  --white: #ffffff;
+
+  --border-radius: 12px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --transition: all 0.3s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  background-color: var(--light);
+  color: var(--dark);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Контейнер приложения */
+.app-container {
+  width: 100%;
+  max-width: 1000px;
+  height: 700px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  background-color: var(--white);
+  display: flex;
+}
+
+/* Форма входа */
+.login-container {
+  width: 100%;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--white);
+  transition: var(--transition);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}
+
+.login-container.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-title {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  font-weight: 700;
+}
+
+.login-input {
+  width: 100%;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+  transition: var(--transition);
+}
+
+.login-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.login-input:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 50px;
+  background-color: var(--white);
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 10px;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
+  color: var(--danger);
+  margin-bottom: 15px;
+  min-height: 20px;
+  font-weight: 500;
+}
+
+/* Интерфейс чата */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Шапка чата */
+.chat-header {
+  padding: 20px;
+  background-color: var(--primary);
+  color: var(--white);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.online-count {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 5px 15px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+}
+
+/* Основная область чата */
+.chat-main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Стили сообщений */
+.message {
+  max-width: 70%;
+  padding: 15px;
+  border-radius: 15px;
+  position: relative;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-sender {
+  font-weight: 600;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.message-text {
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.message-time {
+  font-size: 0.7rem;
+  color: var(--gray);
+  text-align: right;
+  margin-top: 5px;
+}
+
+/* Мои сообщения (справа) */
+.my-message {
+  align-self: flex-end;
+  background-color: var(--primary-light);
+  color: var(--white);
+  border-bottom-right-radius: 5px;
+}
+
+.my-message .message-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Сообщения других (слева) */
+.other-message {
+  align-self: flex-start;
+  background-color: #f1f1f1;
+  border-bottom-left-radius: 5px;
+}
+
+/* Системные сообщения */
+.system-message {
+  align-self: center;
+  background-color: transparent;
+  color: var(--gray);
+  font-style: italic;
+  text-align: center;
+  padding: 5px 0;
+}
+
+/* Панель ввода сообщений */
+.message-input-container {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.message-form {
+  display: flex;
+  gap: 10px;
+}
+
+.message-input {
+  flex: 1;
+  padding: 12px 20px;
+  border: 1px solid #dee2e6;
+  border-radius: 50px;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+.send-btn {
+  padding: 12px 25px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.send-btn:hover {
+  background-color: var(--secondary);
+  transform: translateY(-2px);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .app-container {
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .login-container {
+    padding: 20px;
+  }
+
+  .message {
+    max-width: 85%;
+  }
+}
+
+/* Анимация загрузки */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
