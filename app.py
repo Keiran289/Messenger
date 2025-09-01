@@ -356,6 +356,6 @@ def handle_get_user_status(data):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    host = '0.0.0.0'  # Важно для Render
+    host = '0.0.0.0'
     print(f"Starting NavyChat server on {host}:{port}...")
-    socketio.run(app, host=host, port=port, debug=False)
+    socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
